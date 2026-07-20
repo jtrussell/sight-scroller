@@ -322,8 +322,9 @@ function setTheme(t) {
 const CVS_W = 960, CVS_H = 360;
 const RUNNER_X = 140;
 const LINE_GAP = 16;
-const STAFF_TOP = 190;                         // top staff line = the track
+const STAFF_TOP = 190;                         // top staff line
 const STAFF_BOTTOM = STAFF_TOP + 4 * LINE_GAP; // bottom staff line
+const TRACK_Y = STAFF_TOP - 44;                // the track floats above the staff
 const OBSTACLE_TYPES = ['spike', 'hurdle', 'ditch'];
 
 const MODES = {
@@ -452,7 +453,7 @@ function answer(idx) {
     if (!G.celebrated && qualifies(G.mode, G.score)) {
       G.celebrated = true;
       launchConfetti();
-      G.floats.push({ x: RUNNER_X + 60, y: STAFF_TOP - 110, text: 'NEW HIGH SCORE!', t: 0, life: 2.5 });
+      G.floats.push({ x: RUNNER_X + 60, y: TRACK_Y - 70, text: 'NEW HIGH SCORE!', t: 0, life: 2.5 });
       sfx.fanfare();
     }
     checkSpeedUp();
@@ -492,7 +493,7 @@ function checkSpeedUp() {
   if (level > G.speedLevel) {
     G.speedLevel = level;
     G.speed = MODES[G.mode].speed * Math.pow(SPEED_STEP, level);
-    G.floats.push({ x: RUNNER_X + 40, y: STAFF_TOP - 90, text: 'SPEED UP!', t: 0 });
+    G.floats.push({ x: RUNNER_X + 40, y: TRACK_Y - 60, text: 'SPEED UP!', t: 0 });
     sfx.speedUp();
   }
 }
@@ -543,7 +544,7 @@ function updateFx(dt) {
         for (let i = 0; i < 3; i++) f.drops.push({ x: rand(0, CVS_W + 60), y: rand(-60, -8) });
       }
       for (const d of f.drops) { d.x -= 140 * dt; d.y += 430 * dt; }
-      f.drops = f.drops.filter(d => d.y < STAFF_TOP - 2);
+      f.drops = f.drops.filter(d => d.y < TRACK_Y - 2);
     }
   }
   G.fx = G.fx.filter(f => {
@@ -586,7 +587,7 @@ function drawFxFront() {
     if (f.type === 'tumbleweed') {
       const spr = S().WEED;
       ctx.save();
-      ctx.translate(f.x, STAFF_TOP - spr.height / 2 - weedHop(f.x));
+      ctx.translate(f.x, TRACK_Y - spr.height / 2 - weedHop(f.x));
       ctx.rotate(-f.x / 14);
       ctx.drawImage(spr, -spr.width / 2, -spr.height / 2);
       ctx.restore();
@@ -821,7 +822,7 @@ function update(dt) {
       h.taken = true;
       if (G.lives < MAX_LIVES) {
         G.lives++;
-        G.floats.push({ x: h.x, y: STAFF_TOP - 60, text: '+1UP', t: 0 });
+        G.floats.push({ x: h.x, y: TRACK_Y - 50, text: '+1UP', t: 0 });
       }
       sfx.heart();
     }
@@ -924,10 +925,11 @@ function render() {
 
   drawFxSky();
   drawStaff();
+  drawTrack();
   drawClef();
   for (const n of G.notes) drawObstacle(n);
   for (const n of G.notes) drawNote(n);
-  for (const h of G.hearts) if (!h.taken) ctx.drawImage(S().HEART, h.x - S().HEART.width / 2, STAFF_TOP - 26);
+  for (const h of G.hearts) if (!h.taken) ctx.drawImage(S().HEART, h.x - S().HEART.width / 2, TRACK_Y - 26);
   drawRunner();
   drawFxFront();
   drawHUD();
@@ -944,21 +946,27 @@ function render() {
 
 function drawStaff() {
   ctx.lineWidth = 2;
-  // ditch obstacles cut a gap in the top line (the track)
-  const gaps = G.notes.filter(n => n.obstacle === 'ditch').map(n => n.x);
   ctx.beginPath();
-  let x0 = 0;
-  for (const gx of gaps.sort((a, b) => a - b)) {
-    ctx.moveTo(x0, STAFF_TOP);
-    ctx.lineTo(Math.max(x0, gx - 20), STAFF_TOP);
-    x0 = gx + 20;
-  }
-  ctx.moveTo(x0, STAFF_TOP);
-  ctx.lineTo(CVS_W, STAFF_TOP);
-  for (let i = 1; i < 5; i++) {
+  for (let i = 0; i < 5; i++) {
     ctx.moveTo(0, STAFF_TOP + i * LINE_GAP);
     ctx.lineTo(CVS_W, STAFF_TOP + i * LINE_GAP);
   }
+  ctx.stroke();
+}
+
+function drawTrack() {
+  ctx.lineWidth = 2;
+  // ditch obstacles cut a gap in the track
+  const gaps = G.notes.filter(n => n.obstacle === 'ditch').map(n => n.x).sort((a, b) => a - b);
+  ctx.beginPath();
+  let x0 = 0;
+  for (const gx of gaps) {
+    ctx.moveTo(x0, TRACK_Y);
+    ctx.lineTo(Math.max(x0, gx - 20), TRACK_Y);
+    x0 = gx + 20;
+  }
+  ctx.moveTo(x0, TRACK_Y);
+  ctx.lineTo(CVS_W, TRACK_Y);
   ctx.stroke();
 }
 
@@ -976,24 +984,24 @@ function drawObstacle(n) {
   ctx.lineWidth = 2;
   if (n.obstacle === 'spike') {
     ctx.beginPath();
-    ctx.moveTo(x - 12, STAFF_TOP);
-    ctx.lineTo(x, STAFF_TOP - 20);
-    ctx.lineTo(x + 12, STAFF_TOP);
+    ctx.moveTo(x - 12, TRACK_Y);
+    ctx.lineTo(x, TRACK_Y - 20);
+    ctx.lineTo(x + 12, TRACK_Y);
     ctx.closePath();
     ctx.fill();
   } else if (n.obstacle === 'hurdle') {
-    ctx.fillRect(x - 9, STAFF_TOP - 22, 18, 22);
+    ctx.fillRect(x - 9, TRACK_Y - 22, 18, 22);
     ctx.fillStyle = paper();
-    ctx.fillRect(x - 5, STAFF_TOP - 14, 10, 8);
+    ctx.fillRect(x - 5, TRACK_Y - 14, 10, 8);
     ctx.fillStyle = ink();
   } else { // ditch: jagged bottom under the gap in the track line
     ctx.beginPath();
-    ctx.moveTo(x - 20, STAFF_TOP);
-    ctx.lineTo(x - 12, STAFF_TOP + 9);
-    ctx.lineTo(x - 4, STAFF_TOP + 4);
-    ctx.lineTo(x + 4, STAFF_TOP + 10);
-    ctx.lineTo(x + 12, STAFF_TOP + 5);
-    ctx.lineTo(x + 20, STAFF_TOP);
+    ctx.moveTo(x - 20, TRACK_Y);
+    ctx.lineTo(x - 12, TRACK_Y + 9);
+    ctx.lineTo(x - 4, TRACK_Y + 4);
+    ctx.lineTo(x + 4, TRACK_Y + 10);
+    ctx.lineTo(x + 12, TRACK_Y + 5);
+    ctx.lineTo(x + 20, TRACK_Y);
     ctx.stroke();
   }
 }
@@ -1037,11 +1045,19 @@ function drawNote(n) {
   else { ctx.moveTo(x - 8, y + 2); ctx.lineTo(x - 8, y + 3.2 * LINE_GAP); }
   ctx.stroke();
 
+  // bobbing arrow over the note currently being asked
+  if (active) {
+    const ay = TRACK_Y - 40 + Math.sin(G.time * 6) * 3;
+    ctx.fillRect(x - 7, ay, 14, 4);
+    ctx.fillRect(x - 4, ay + 4, 8, 4);
+    ctx.fillRect(x - 2, ay + 8, 4, 4);
+  }
+
   // reveal the letter once the note is resolved
   if (n.status !== 'pending') {
     ctx.font = 'bold 15px "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(n.name[0], x, Math.min(y, STAFF_TOP) - 30);
+    ctx.fillText(n.name[0], x, TRACK_Y - 26);
   }
 
   if (gray) { ctx.fillStyle = ink(); ctx.strokeStyle = ink(); }
@@ -1058,13 +1074,13 @@ function drawRunner() {
   }
 
   const x = RUNNER_X - sprite.width / 2;
-  const y = STAFF_TOP - sprite.height + yOff;
+  const y = TRACK_Y - sprite.height + yOff;
 
   if (G.state === 'dying') {
     // spin + flash in place
     if (Math.floor(G.dieT * 10) % 2) return;
     ctx.save();
-    ctx.translate(RUNNER_X, STAFF_TOP - sprite.height / 2);
+    ctx.translate(RUNNER_X, TRACK_Y - sprite.height / 2);
     ctx.rotate(G.dieT * 9);
     ctx.drawImage(S().RUN_A, -sprite.width / 2, -sprite.height / 2);
     ctx.restore();
@@ -1108,7 +1124,10 @@ function updateButtons() {
   });
 }
 
-answerBtns.forEach((b, i) => b.addEventListener('click', () => answer(i)));
+answerBtns.forEach((b, i) => b.addEventListener('click', () => {
+  b.blur(); // drop focus so the button never lingers in a pressed/selected look
+  answer(i);
+}));
 
 /* ---------- leaderboards ---------- */
 

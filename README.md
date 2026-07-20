@@ -15,9 +15,10 @@ push to `main` (or manually via the Actions tab). One-time repo setup:
 
 ## How to play
 
-An 8-bit runner jogs along the top line of a musical staff. Notes scroll in
-from the right, each paired with an obstacle on the track (spike, hurdle, or
-ditch). Three buttons under the staff offer note names — pick the right one
+An 8-bit runner races along a track floating just above a musical staff.
+Notes scroll in on the staff below, each paired with an obstacle on the
+track (spike, hurdle, or ditch) — so the notation stays pure notation and
+the hazards stay clearly part of the game. Three buttons under the staff offer note names — pick the right one
 before the runner reaches the note and they'll jump the obstacle (+1 point).
 Guess wrong, or fail to guess in time, and it's a death spin.
 

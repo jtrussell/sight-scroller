@@ -119,7 +119,13 @@ button {
   touch-action: manipulation;
 }
 
-button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+/* hover inversion only on devices that truly hover — on touch screens the
+   hover state sticks to the last tapped button and reads as still-selected */
+@media (hover: hover) {
+  button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+}
+
+button:active:not(:disabled) { background: var(--ink); color: var(--paper); }
 
 button:disabled { opacity: 0.35; cursor: default; }
 
