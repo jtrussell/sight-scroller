@@ -1,5 +1,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html { -webkit-text-size-adjust: 100%; }
+
 :root {
   --ink: #111;
   --paper: #fff;
@@ -39,6 +41,10 @@ body {
 #stage {
   position: relative;
   width: 100%;
+  /* never force vertical scrolling: cap width so the 8:3 canvas fits the
+     viewport height alongside the title, answer buttons, and hint */
+  max-width: min(100%, calc((100vh - 180px) * 8 / 3));
+  max-width: min(100%, calc((100dvh - 180px) * 8 / 3));
   border: 3px solid var(--ink);
 }
 
@@ -110,6 +116,7 @@ button {
   padding: 8px 18px;
   letter-spacing: 2px;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
@@ -218,3 +225,29 @@ body.dark #initials:focus { background: #333; }
 .blink { animation: blink 0.9s steps(2, start) infinite; }
 
 @keyframes blink { to { visibility: hidden; } }
+
+/* ---------- small screens (phones) ---------- */
+@media (max-width: 700px), (max-height: 540px) {
+  body { padding: 8px 6px; }
+  #app { gap: 8px; }
+  #title { font-size: 18px; letter-spacing: 6px; }
+  #hint { display: none; }
+
+  /* menus take over the whole screen instead of squeezing into the stage */
+  .overlay { position: fixed; z-index: 10; }
+  #confetti { position: fixed; z-index: 11; }
+
+  /* phones reserve less vertical space for chrome, so the play field can grow */
+  #stage {
+    max-width: min(100%, calc((100vh - 135px) * 8 / 3));
+    max-width: min(100%, calc((100dvh - 135px) * 8 / 3));
+  }
+
+  .panel { gap: 10px; padding: 12px; }
+  .panel h2 { font-size: 20px; letter-spacing: 4px; }
+  button.big { min-width: 220px; font-size: 18px; padding: 10px 24px; }
+  .answer { font-size: 24px; padding: 12px 0; flex: 1 1 0; max-width: 160px; }
+  #answers { gap: 10px; }
+  ol { min-width: 220px; }
+  #note-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}

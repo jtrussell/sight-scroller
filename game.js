@@ -1288,6 +1288,11 @@ function togglePause() {
   }
 }
 
+// touch devices have no P key: tapping the play field pauses
+cvs.addEventListener('pointerdown', () => {
+  if (G.state === 'playing') togglePause();
+});
+
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   if (e.key === '1' || e.key === '2' || e.key === '3') answer(Number(e.key) - 1);
