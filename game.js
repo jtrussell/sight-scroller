@@ -138,6 +138,7 @@ const sfx = {
   death: () => { tone(220, 0.5, 0, 'sawtooth', 0.12, 55); },
   heart: () => { tone(660, 0.08); tone(990, 0.14, 0.09); },
   speedUp: () => { tone(440, 0.07); tone(550, 0.07, 0.08); tone(660, 0.12, 0.16); },
+  fanfare: () => { tone(523, 0.09); tone(659, 0.09, 0.09); tone(784, 0.09, 0.18); tone(1047, 0.25, 0.27); },
   click: () => tone(880, 0.04, 0, 'square', 0.05),
 };
 
@@ -358,6 +359,7 @@ const G = {
   fx: [],          // active environmental effects
   fxCountdown: 0,  // notes until the next effect
   lastFx: null,
+  celebrated: false, // confetti fired for this run
 };
 
 function staffY(name) {
@@ -414,6 +416,7 @@ function startGame(mode) {
   G.fx = [];
   G.fxCountdown = 5 + Math.floor(Math.random() * 6);
   G.lastFx = null;
+  G.celebrated = false;
   ensureSpawns();
   showOverlay(null);
   updateButtons();
@@ -438,6 +441,12 @@ function answer(idx) {
     G.score++;
     sfx.correct(note.name);
     G.floats.push({ x: note.x, y: staffY(note.name) - 36, text: '+1', t: 0 });
+    if (!G.celebrated && qualifies(G.mode, G.score)) {
+      G.celebrated = true;
+      launchConfetti();
+      G.floats.push({ x: RUNNER_X + 60, y: STAFF_TOP - 110, text: 'NEW HIGH SCORE!', t: 0, life: 2.5 });
+      sfx.fanfare();
+    }
     checkSpeedUp();
     noteResolved();
     G.activeNote = currentActive();
@@ -647,7 +656,7 @@ function update(dt) {
   }
 
   for (const f of G.floats) f.t += dt;
-  G.floats = G.floats.filter(f => f.t < 1);
+  G.floats = G.floats.filter(f => f.t < (f.life || 1));
 
   updateFx(dt);
 }
@@ -739,8 +748,9 @@ function render() {
   ctx.font = 'bold 16px "Courier New", monospace';
   ctx.textAlign = 'center';
   for (const f of G.floats) {
-    ctx.globalAlpha = 1 - f.t;
-    ctx.fillText(f.text, f.x, f.y - f.t * 24);
+    const u = f.t / (f.life || 1);
+    ctx.globalAlpha = 1 - u;
+    ctx.fillText(f.text, f.x, f.y - u * 24);
     ctx.globalAlpha = 1;
   }
 }
@@ -967,7 +977,6 @@ function endGame() {
   updateButtons();
   $('#final-score').textContent = `SCORE: ${G.score}`;
   const q = qualifies(G.mode, G.score);
-  if (q) launchConfetti();
   $('#hs-entry').classList.toggle('hidden', !q);
   renderScores($('#go-score-list'), G.mode);
   showOverlay('gameover');

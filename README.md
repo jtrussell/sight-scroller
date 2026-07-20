@@ -35,7 +35,8 @@ alongside your eyes.
 - **Virtuoso** — 1 life, and the scroll speed increases every 10 points.
 
 Each mode keeps its own top-10 leaderboard; new high scores prompt for
-initials.
+initials. The moment a run's score breaks onto the leaderboard, confetti —
+the game's only splash of color — rains down mid-game.
 
 ## Environmental effects
 
