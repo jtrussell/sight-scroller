@@ -5,6 +5,11 @@
   --paper: #fff;
 }
 
+body.dark {
+  --ink: #fff;
+  --paper: #111;
+}
+
 body {
   background: var(--paper);
   color: var(--ink);
@@ -13,6 +18,7 @@ body {
   display: flex;
   justify-content: center;
   padding: 16px 8px;
+  transition: background-color 0.8s ease, color 0.8s ease;
 }
 
 #app {
@@ -43,6 +49,14 @@ body {
   image-rendering: pixelated;
 }
 
+#confetti {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 /* ---------- overlays ---------- */
 .overlay {
   position: absolute;
@@ -51,7 +65,10 @@ body {
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.94);
+  transition: background-color 0.8s ease;
 }
+
+body.dark .overlay { background: rgba(17, 17, 17, 0.94); }
 
 .hidden { display: none !important; }
 
@@ -189,7 +206,14 @@ input[type="range"] {
   margin-right: 8px;
 }
 
+#initials {
+  background: var(--paper);
+  color: var(--ink);
+}
+
 #initials:focus { outline: none; background: #eee; }
+
+body.dark #initials:focus { background: #333; }
 
 .blink { animation: blink 0.9s steps(2, start) infinite; }
 

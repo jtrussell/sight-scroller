@@ -141,9 +141,14 @@ const sfx = {
   click: () => tone(880, 0.04, 0, 'square', 0.05),
 };
 
-/* ================= sprites ================= */
+/* ================= sprites & themes ================= */
 
-function buildSprite(rows, scale = 2) {
+const THEMES = {
+  light: { ink: '#111', paper: '#fff' },
+  dark:  { ink: '#fff', paper: '#111' },
+};
+
+function buildSprite(rows, ink, paper, scale = 2) {
   const w = rows[0].length, h = rows.length;
   const cv = document.createElement('canvas');
   cv.width = w * scale;
@@ -153,7 +158,7 @@ function buildSprite(rows, scale = 2) {
     for (let x = 0; x < w; x++) {
       const ch = rows[y][x];
       if (ch === '.') continue;
-      c.fillStyle = ch === 'o' ? '#fff' : '#111';
+      c.fillStyle = ch === 'o' ? paper : ink;
       c.fillRect(x * scale, y * scale, scale, scale);
     }
   }
@@ -167,7 +172,9 @@ const HEAD = [
   '.....##.....',
 ];
 
-const RUN_A = buildSprite([...HEAD,
+const MAPS = {};
+
+MAPS.RUN_A = [...HEAD,
   '..########..',
   '.#..####..#.',
   '.#..####..#.',
@@ -180,9 +187,9 @@ const RUN_A = buildSprite([...HEAD,
   '..##.....#..',
   '..#......##.',
   '.##.........',
-]);
+];
 
-const RUN_B = buildSprite([...HEAD,
+MAPS.RUN_B = [...HEAD,
   '..########..',
   '.#..####..#.',
   '.#..####..#.',
@@ -195,9 +202,9 @@ const RUN_B = buildSprite([...HEAD,
   '...#....#...',
   '...#....#...',
   '...##...##..',
-]);
+];
 
-const JUMP = buildSprite([...HEAD,
+MAPS.JUMP = [...HEAD,
   '..########..',
   '#...####...#',
   '#...####...#',
@@ -210,16 +217,104 @@ const JUMP = buildSprite([...HEAD,
   '...##..##...',
   '............',
   '............',
-]);
+];
 
-const HEART = buildSprite([
+MAPS.HEART = [
   '.##..##.',
   '########',
   '########',
   '.######.',
   '..####..',
   '...##...',
-], 2);
+];
+
+MAPS.SUN = [
+  '......#......',
+  '..#...#...#..',
+  '...#.....#...',
+  '.....###.....',
+  '....#####....',
+  '...#######...',
+  '#..#######..#',
+  '...#######...',
+  '....#####....',
+  '.....###.....',
+  '...#.....#...',
+  '..#...#...#..',
+  '......#......',
+];
+
+MAPS.MOON = [
+  '...####...',
+  '..####....',
+  '.####.....',
+  '#####.....',
+  '#####.....',
+  '#####.....',
+  '#####.....',
+  '.####.....',
+  '..####....',
+  '...####...',
+];
+
+MAPS.UFO = [
+  '......####......',
+  '.....######.....',
+  '..############..',
+  '.#o##o##o##o###.',
+  '..############..',
+  '....#......#....',
+];
+
+MAPS.WEED = [
+  '..#.##.#..',
+  '.#.#..#.#.',
+  '#..#.#..##',
+  '.#.#..#.#.',
+  '#..#.#..#.',
+  '.#..#..#.#',
+  '#.#..#.#..',
+  '.#.#.#..#.',
+  '#...#..#..',
+  '..#..##...',
+];
+
+MAPS.SHARK = [
+  '.........##.........',
+  '........####.......#',
+  '...##########.....##',
+  '.####o########..###.',
+  '###.################',
+  '.#############..##..',
+  '...##..####.....#...',
+];
+
+const SPRITE_SCALES = { UFO: 3, SHARK: 3 };
+
+function makeSpriteSet(themeName) {
+  const t = THEMES[themeName];
+  const out = {};
+  for (const key of Object.keys(MAPS)) {
+    out[key] = buildSprite(MAPS[key], t.ink, t.paper, SPRITE_SCALES[key] || 2);
+  }
+  return out;
+}
+
+const SPRITES = { light: makeSpriteSet('light'), dark: makeSpriteSet('dark') };
+
+// rendered theme position between light (0) and dark (1); chases G.theme each frame
+let themeU = 0;
+const THEME_FADE_S = 0.8;
+
+const grayHex = v => `#${v.toString(16).padStart(2, '0').repeat(3)}`;
+const ink = () => grayHex(Math.round(17 + 238 * themeU));
+const paper = () => grayHex(Math.round(255 - 238 * themeU));
+const S = () => SPRITES[themeU >= 0.5 ? 'dark' : 'light'];
+
+function setTheme(t) {
+  G.theme = t;
+  document.body.classList.toggle('dark', t === 'dark');
+}
 
 /* ================= game constants ================= */
 
@@ -259,6 +354,10 @@ const G = {
   deadNote: null,
   invulnNote: null,
   activeNote: null,
+  theme: 'light',
+  fx: [],          // active environmental effects
+  fxCountdown: 0,  // notes until the next effect
+  lastFx: null,
 };
 
 function staffY(name) {
@@ -312,6 +411,9 @@ function startGame(mode) {
   G.deadNote = null;
   G.invulnNote = null;
   G.activeNote = null;
+  G.fx = [];
+  G.fxCountdown = 5 + Math.floor(Math.random() * 6);
+  G.lastFx = null;
   ensureSpawns();
   showOverlay(null);
   updateButtons();
@@ -337,6 +439,7 @@ function answer(idx) {
     sfx.correct(note.name);
     G.floats.push({ x: note.x, y: staffY(note.name) - 36, text: '+1', t: 0 });
     checkSpeedUp();
+    noteResolved();
     G.activeNote = currentActive();
     updateButtons();
   } else {
@@ -351,6 +454,7 @@ function die(note) {
   G.state = 'dying';
   G.dieT = 0;
   sfx.death();
+  noteResolved();
   updateButtons();
 }
 
@@ -373,6 +477,109 @@ function checkSpeedUp() {
     G.speed = MODES[G.mode].speed * Math.pow(SPEED_STEP, level);
     G.floats.push({ x: RUNNER_X + 40, y: STAFF_TOP - 90, text: 'SPEED UP!', t: 0 });
     sfx.speedUp();
+  }
+}
+
+/* ================= environmental effects ================= */
+
+const FX_TYPES = ['daynight', 'ufo', 'tumbleweed', 'rain', 'shark'];
+
+function noteResolved() {
+  if (--G.fxCountdown > 0) return;
+  if (G.fx.length) { G.fxCountdown = 1; return; } // let the current effect finish first
+  startEffect();
+  G.fxCountdown = 5 + Math.floor(Math.random() * 6); // next one in 5–10 notes
+}
+
+function startEffect(forced) {
+  const type = forced || choice(FX_TYPES.filter(t => t !== G.lastFx));
+  G.lastFx = type;
+  if (type === 'daynight') {
+    G.fx.push({ type, t: 0, dur: 7, to: G.theme === 'light' ? 'dark' : 'light', flipped: false });
+  } else if (type === 'ufo') {
+    G.fx.push({ type, t: 0, dur: 5 });
+  } else if (type === 'shark') {
+    G.fx.push({ type, t: 0, dur: 8 });
+  } else if (type === 'tumbleweed') {
+    G.fx.push({ type, t: 0, x: CVS_W + 30 });
+  } else { // rain
+    G.fx.push({ type, t: 0, dur: 7, drops: [] });
+  }
+}
+
+function updateFx(dt) {
+  for (const f of G.fx) {
+    f.t += dt;
+    if (f.type === 'daynight') {
+      if (!f.flipped && f.t / f.dur >= 0.5) {
+        f.flipped = true;
+        setTheme(f.to);
+      }
+    } else if (f.type === 'tumbleweed') {
+      f.x -= G.speed * 1.6 * dt;
+    } else if (f.type === 'rain') {
+      if (f.t < f.dur - 1.5) {
+        for (let i = 0; i < 3; i++) f.drops.push({ x: rand(0, CVS_W + 60), y: rand(-60, -8) });
+      }
+      for (const d of f.drops) { d.x -= 140 * dt; d.y += 430 * dt; }
+      f.drops = f.drops.filter(d => d.y < STAFF_TOP - 2);
+    }
+  }
+  G.fx = G.fx.filter(f => {
+    if (f.type === 'tumbleweed') return f.x > -40;
+    if (f.type === 'rain') return f.t < f.dur || f.drops.length > 0;
+    return f.t < f.dur;
+  });
+}
+
+// hop height along the tumbleweed's path — boosted near the runner so it bounces over them
+function weedHop(x) {
+  const boost = 52 * Math.exp(-((x - RUNNER_X) ** 2) / (2 * 60 * 60));
+  return (24 + boost) * Math.abs(Math.sin(x / 55));
+}
+
+function drawFxSky() {
+  for (const f of G.fx) {
+    if (f.type === 'daynight') {
+      const u = clamp(f.t / f.dur, 0, 1);
+      const spr = f.to === 'dark' ? S().MOON : S().SUN;
+      const x = -30 + (CVS_W + 60) * u;
+      const y = 122 - 88 * Math.sin(Math.PI * u);
+      ctx.drawImage(spr, x - spr.width / 2, y - spr.height / 2);
+    } else if (f.type === 'ufo') {
+      const u = clamp(f.t / f.dur, 0, 1);
+      const x = CVS_W + 40 - (CVS_W + 80) * u;
+      const y = 62 + Math.sin(f.t * 5) * 14;
+      ctx.drawImage(S().UFO, x - S().UFO.width / 2, y);
+    } else if (f.type === 'shark') {
+      const u = clamp(f.t / f.dur, 0, 1);
+      const x = CVS_W + 50 - (CVS_W + 100) * u;
+      const y = 88 + Math.sin(f.t * 2.2) * 9;
+      ctx.drawImage(S().SHARK, x - S().SHARK.width / 2, y);
+    }
+  }
+}
+
+function drawFxFront() {
+  for (const f of G.fx) {
+    if (f.type === 'tumbleweed') {
+      const spr = S().WEED;
+      ctx.save();
+      ctx.translate(f.x, STAFF_TOP - spr.height / 2 - weedHop(f.x));
+      ctx.rotate(-f.x / 14);
+      ctx.drawImage(spr, -spr.width / 2, -spr.height / 2);
+      ctx.restore();
+    } else if (f.type === 'rain') {
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (const d of f.drops) {
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x - 3, d.y + 9);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
   }
 }
 
@@ -441,6 +648,8 @@ function update(dt) {
 
   for (const f of G.floats) f.t += dt;
   G.floats = G.floats.filter(f => f.t < 1);
+
+  updateFx(dt);
 }
 
 /* ================= render ================= */
@@ -454,19 +663,77 @@ const ctx = cvs.getContext('2d');
   ctx.scale(dpr, dpr);
 }
 
+/* ---------- confetti: the game's only splash of color ---------- */
+
+const ccvs = $('#confetti');
+const cctx = ccvs.getContext('2d');
+{
+  const dpr = window.devicePixelRatio || 1;
+  ccvs.width = CVS_W * dpr;
+  ccvs.height = CVS_H * dpr;
+  cctx.scale(dpr, dpr);
+}
+
+let confetti = [];
+
+function launchConfetti() {
+  for (let i = 0; i < 150; i++) {
+    confetti.push({
+      x: rand(0, CVS_W),
+      y: rand(-CVS_H * 1.5, -10), // staggered start heights so it rains for a while
+      vy: rand(80, 180),
+      sway: rand(20, 70),
+      freq: rand(2, 5),
+      phase: rand(0, Math.PI * 2),
+      rot: rand(0, Math.PI * 2),
+      spin: rand(-7, 7),
+      w: rand(5, 9),
+      h: rand(3, 6),
+      color: `hsl(${Math.floor(rand(0, 360))}, 90%, ${Math.floor(rand(45, 65))}%)`,
+      t: 0,
+    });
+  }
+}
+
+function updateConfetti(dt) {
+  if (!confetti.length) return;
+  for (const p of confetti) {
+    p.t += dt;
+    p.vy = Math.min(p.vy + 240 * dt, 330);
+    p.y += p.vy * dt;
+    p.x += Math.sin(p.t * p.freq + p.phase) * p.sway * dt;
+    p.rot += p.spin * dt;
+  }
+  confetti = confetti.filter(p => p.y < CVS_H + 20);
+}
+
+function renderConfetti() {
+  cctx.clearRect(0, 0, CVS_W, CVS_H);
+  for (const p of confetti) {
+    cctx.save();
+    cctx.translate(p.x, p.y);
+    cctx.rotate(p.rot);
+    cctx.fillStyle = p.color;
+    cctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    cctx.restore();
+  }
+}
+
 function render() {
   ctx.clearRect(0, 0, CVS_W, CVS_H);
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = paper();
   ctx.fillRect(0, 0, CVS_W, CVS_H);
-  ctx.fillStyle = '#111';
-  ctx.strokeStyle = '#111';
+  ctx.fillStyle = ink();
+  ctx.strokeStyle = ink();
 
+  drawFxSky();
   drawStaff();
   drawClef();
   for (const n of G.notes) drawObstacle(n);
   for (const n of G.notes) drawNote(n);
-  for (const h of G.hearts) if (!h.taken) ctx.drawImage(HEART, h.x - HEART.width / 2, STAFF_TOP - 26);
+  for (const h of G.hearts) if (!h.taken) ctx.drawImage(S().HEART, h.x - S().HEART.width / 2, STAFF_TOP - 26);
   drawRunner();
+  drawFxFront();
   drawHUD();
 
   ctx.font = 'bold 16px "Courier New", monospace';
@@ -519,10 +786,9 @@ function drawObstacle(n) {
     ctx.fill();
   } else if (n.obstacle === 'hurdle') {
     ctx.fillRect(x - 9, STAFF_TOP - 22, 18, 22);
-    ctx.clearRect(x - 5, STAFF_TOP - 14, 10, 8);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = paper();
     ctx.fillRect(x - 5, STAFF_TOP - 14, 10, 8);
-    ctx.fillStyle = '#111';
+    ctx.fillStyle = ink();
   } else { // ditch: jagged bottom under the gap in the track line
     ctx.beginPath();
     ctx.moveTo(x - 20, STAFF_TOP);
@@ -555,7 +821,7 @@ function drawNote(n) {
   ctx.stroke();
 
   const gray = n.status === 'missed';
-  if (gray) { ctx.fillStyle = '#999'; ctx.strokeStyle = '#999'; }
+  if (gray) { ctx.fillStyle = '#888'; ctx.strokeStyle = '#888'; }
 
   // note head (filled for active/resolved, hollow for waiting)
   ctx.save();
@@ -581,15 +847,15 @@ function drawNote(n) {
     ctx.fillText(n.name[0], x, Math.min(y, STAFF_TOP) - 30);
   }
 
-  if (gray) { ctx.fillStyle = '#111'; ctx.strokeStyle = '#111'; }
+  if (gray) { ctx.fillStyle = ink(); ctx.strokeStyle = ink(); }
 }
 
 function drawRunner() {
-  let sprite = Math.floor(G.time * 8) % 2 ? RUN_A : RUN_B;
+  let sprite = Math.floor(G.time * 8) % 2 ? S().RUN_A : S().RUN_B;
   let yOff = 0;
 
   if (G.jump) {
-    sprite = JUMP;
+    sprite = S().JUMP;
     const u = G.jump.t / JUMP_DUR;
     yOff = -JUMP_HEIGHT * 4 * u * (1 - u);
   }
@@ -603,7 +869,7 @@ function drawRunner() {
     ctx.save();
     ctx.translate(RUNNER_X, STAFF_TOP - sprite.height / 2);
     ctx.rotate(G.dieT * 9);
-    ctx.drawImage(RUN_A, -sprite.width / 2, -sprite.height / 2);
+    ctx.drawImage(S().RUN_A, -sprite.width / 2, -sprite.height / 2);
     ctx.restore();
     return;
   }
@@ -623,7 +889,7 @@ function drawHUD() {
   if (MODES[G.mode].accelerates) label += `  x${(G.speed / MODES[G.mode].speed).toFixed(2)}`;
   ctx.fillText(label, 16, 54);
   for (let i = 0; i < G.lives; i++) {
-    ctx.drawImage(HEART, CVS_W - 26 - i * 22, 20);
+    ctx.drawImage(S().HEART, CVS_W - 26 - i * 22, 20);
   }
 }
 
@@ -701,6 +967,7 @@ function endGame() {
   updateButtons();
   $('#final-score').textContent = `SCORE: ${G.score}`;
   const q = qualifies(G.mode, G.score);
+  if (q) launchConfetti();
   $('#hs-entry').classList.toggle('hidden', !q);
   renderScores($('#go-score-list'), G.mode);
   showOverlay('gameover');
@@ -806,8 +1073,10 @@ function quitToMenu() {
   G.notes = [];
   G.hearts = [];
   G.floats = [];
+  G.fx = [];
   G.jump = null;
   G.activeNote = null;
+  setTheme('light'); // back at the menu, night fades to day
   updateButtons();
   showOverlay('menu');
 }
@@ -847,8 +1116,13 @@ let lastT = performance.now();
 function frame(t) {
   const dt = clamp((t - lastT) / 1000, 0, 0.05);
   lastT = t;
+  const target = G.theme === 'dark' ? 1 : 0;
+  const step = dt / THEME_FADE_S;
+  themeU = Math.abs(target - themeU) <= step ? target : themeU + Math.sign(target - themeU) * step;
   update(dt);
   render();
+  updateConfetti(dt);
+  renderConfetti();
   requestAnimationFrame(frame);
 }
 

@@ -37,6 +37,18 @@ alongside your eyes.
 Each mode keeps its own top-10 leaderboard; new high scores prompt for
 initials.
 
+## Environmental effects
+
+Every 5–10 notes, something happens in the world:
+
+- **Day/night** — a sun (or moon) arcs across the sky; when it reaches the
+  middle, the whole game flips between light mode (black on white) and dark
+  mode (white on black).
+- **UFO** — a flying saucer wobbles across the sky.
+- **Shark** — a shark swims serenely through the air. Don't ask.
+- **Tumbleweed** — bounces along the track and hops right over the runner.
+- **Rain** — a passing shower rolls through, then clears.
+
 ## Settings
 
 The settings screen lets an admin choose:
