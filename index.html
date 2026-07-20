@@ -37,6 +37,11 @@
           <label><input type="radio" name="clef" value="bass"> Bass clef</label>
           <label><input type="checkbox" id="opt-sound"> Sound</label>
         </div>
+        <div class="row">
+          <label for="opt-spacing">Note spacing</label>
+          <input type="range" id="opt-spacing" min="220" max="560" step="20">
+          <span id="spacing-readout"></span>
+        </div>
         <p class="help">Pick the notes players will be quizzed on (at least 2):</p>
         <div id="note-grid"></div>
         <p class="warn hidden" id="settings-warn">Select at least 2 notes.</p>
@@ -83,6 +88,10 @@
     <div class="overlay hidden" id="paused">
       <div class="panel">
         <h2 class="blink">PAUSED</h2>
+        <div class="row">
+          <button id="btn-resume">RESUME</button>
+          <button id="btn-quit">QUIT TO MENU</button>
+        </div>
         <p class="help">press P to resume</p>
       </div>
     </div>
@@ -94,7 +103,7 @@
     <button class="answer" data-i="2"></button>
   </div>
 
-  <p id="hint">keys: 1 2 3 answer · P pause · M mute</p>
+  <p id="hint">keys: 1 2 3 or note letter to answer · P pause · M mute</p>
 </div>
 <script src="game.js"></script>
 </body>

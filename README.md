@@ -7,6 +7,12 @@ players advance by identifying musical notes.
 
 No build step, no server. Just open `index.html` in a browser.
 
+## Deploy
+
+`.github/workflows/deploy.yml` publishes the site to GitHub Pages on every
+push to `main` (or manually via the Actions tab). One-time repo setup:
+**Settings → Pages → Source → "GitHub Actions"**.
+
 ## How to play
 
 An 8-bit runner jogs along the top line of a musical staff. Notes scroll in
@@ -18,7 +24,8 @@ Guess wrong, or fail to guess in time, and it's a death spin.
 Correct answers also play the actual pitch of the note, so your ears learn
 alongside your eyes.
 
-- **Keys:** `1` `2` `3` to answer, `P` to pause, `M` to mute.
+- **Keys:** `1` `2` `3` to answer by position, or type the note letter
+  itself (`A`–`G`, when it's one of the choices). `P` to pause, `M` to mute.
 
 ## Modes
 
@@ -35,6 +42,8 @@ initials.
 The settings screen lets an admin choose:
 
 - **Clef** — treble or bass (each remembers its own note selection).
+- **Note spacing** — how far apart notes spawn, i.e. how much thinking time
+  per note (shown as ~seconds per note at starting speed).
 - **Note pool** — which notes appear, from below-staff ledger notes up
   through above-staff ones (minimum 2 selected). Defaults to the lines and
   spaces of the staff itself.

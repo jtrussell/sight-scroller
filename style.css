@@ -165,6 +165,17 @@ input[type="checkbox"], input[type="radio"] {
   margin-right: 4px;
 }
 
+input[type="range"] {
+  accent-color: var(--ink);
+  width: 180px;
+}
+
+#spacing-readout {
+  font-size: 13px;
+  min-width: 130px;
+  text-align: left;
+}
+
 /* ---------- high score entry ---------- */
 #initials {
   font: inherit;

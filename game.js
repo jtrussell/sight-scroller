@@ -88,6 +88,7 @@ function normalizeSettings(s) {
   const out = {
     clef: s && s.clef === 'bass' ? 'bass' : 'treble',
     sound: !s || s.sound !== false,
+    spacing: clamp(Number(s && s.spacing) || 340, 220, 560),
     pools: { treble: defaultPool('treble'), bass: defaultPool('bass') },
   };
   if (s && s.pools) {
@@ -227,7 +228,6 @@ const RUNNER_X = 140;
 const LINE_GAP = 16;
 const STAFF_TOP = 190;                         // top staff line = the track
 const STAFF_BOTTOM = STAFF_TOP + 4 * LINE_GAP; // bottom staff line
-const NOTE_SPACING = 340;
 const OBSTACLE_TYPES = ['spike', 'hurdle', 'ditch'];
 
 const MODES = {
@@ -284,14 +284,14 @@ function spawnNote(x) {
     jumped: false,
   });
   if (MODES[G.mode].hearts && Math.random() < 0.12) {
-    G.hearts.push({ x: x - NOTE_SPACING / 2, taken: false });
+    G.hearts.push({ x: x - settings.spacing / 2, taken: false });
   }
 }
 
 function ensureSpawns() {
   let lastX = G.notes.length ? G.notes[G.notes.length - 1].x : RUNNER_X + 200;
-  while (lastX < CVS_W + NOTE_SPACING) {
-    lastX += NOTE_SPACING + rand(-30, 30);
+  while (lastX < CVS_W + settings.spacing) {
+    lastX += settings.spacing + rand(-30, 30);
     spawnNote(lastX);
   }
 }
@@ -726,8 +726,15 @@ function openSettings() {
   draft = JSON.parse(JSON.stringify(settings));
   $$('#clef-row input[name=clef]').forEach(r => { r.checked = r.value === draft.clef; });
   $('#opt-sound').checked = draft.sound;
+  $('#opt-spacing').value = draft.spacing;
+  updateSpacingReadout();
   buildNoteGrid();
   showOverlay('settings');
+}
+
+function updateSpacingReadout() {
+  // seconds between notes at the gym starting speed
+  $('#spacing-readout').textContent = `~${(draft.spacing / MODES.gym.speed).toFixed(1)}s per note`;
 }
 
 function buildNoteGrid() {
@@ -754,6 +761,11 @@ $$('#clef-row input[name=clef]').forEach(r =>
   r.addEventListener('change', () => { draft.clef = r.value; buildNoteGrid(); }));
 
 $('#opt-sound').addEventListener('change', e => { draft.sound = e.target.checked; });
+
+$('#opt-spacing').addEventListener('input', e => {
+  draft.spacing = Number(e.target.value);
+  updateSpacingReadout();
+});
 
 $('#btn-settings-defaults').addEventListener('click', () => {
   draft.pools[draft.clef] = defaultPool(draft.clef);
@@ -785,7 +797,20 @@ $('#tab-virtuoso').addEventListener('click', () => { lbTab = 'virtuoso'; showLea
 $('#btn-save-score').addEventListener('click', saveInitials);
 $('#initials').addEventListener('keydown', e => { if (e.key === 'Enter') saveInitials(); });
 $('#btn-retry').addEventListener('click', () => startGame(G.mode));
-$('#btn-go-menu').addEventListener('click', () => { G.state = 'menu'; updateButtons(); showOverlay('menu'); });
+$('#btn-go-menu').addEventListener('click', quitToMenu);
+$('#btn-resume').addEventListener('click', togglePause);
+$('#btn-quit').addEventListener('click', quitToMenu);
+
+function quitToMenu() {
+  G.state = 'menu';
+  G.notes = [];
+  G.hearts = [];
+  G.floats = [];
+  G.jump = null;
+  G.activeNote = null;
+  updateButtons();
+  showOverlay('menu');
+}
 
 function togglePause() {
   if (G.state === 'playing') {
@@ -802,6 +827,14 @@ document.addEventListener('keydown', e => {
   if (e.key === '1' || e.key === '2' || e.key === '3') answer(Number(e.key) - 1);
   else if (e.key === 'p' || e.key === 'P') togglePause();
   else if (e.key === 'm' || e.key === 'M') { settings.sound = !settings.sound; saveSettings(); }
+  else if (e.key.length === 1) {
+    // note-name keys: A–G answer directly when that letter is one of the choices
+    const letter = e.key.toUpperCase();
+    if (LETTERS.includes(letter) && G.activeNote) {
+      const idx = G.activeNote.choices.indexOf(letter);
+      if (idx !== -1) answer(idx);
+    }
+  }
 });
 
 document.addEventListener('visibilitychange', () => {
