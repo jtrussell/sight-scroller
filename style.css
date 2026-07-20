@@ -1,0 +1,185 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #111;
+  --paper: #fff;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Courier New", Courier, monospace;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  padding: 16px 8px;
+}
+
+#app {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+#title {
+  font-size: 28px;
+  letter-spacing: 10px;
+  user-select: none;
+}
+
+#stage {
+  position: relative;
+  width: 100%;
+  border: 3px solid var(--ink);
+}
+
+#game {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+/* ---------- overlays ---------- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.hidden { display: none !important; }
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.panel.wide { width: 92%; }
+
+.panel h2 { letter-spacing: 6px; }
+
+.tagline { letter-spacing: 4px; }
+
+.help { font-size: 12px; line-height: 1.6; }
+
+.warn { font-size: 12px; }
+
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ---------- buttons ---------- */
+button {
+  font: inherit;
+  background: var(--paper);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  padding: 8px 18px;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+
+button:disabled { opacity: 0.35; cursor: default; }
+
+button.big {
+  font-size: 22px;
+  padding: 12px 40px;
+  min-width: 260px;
+}
+
+button.tab.active { background: var(--ink); color: var(--paper); }
+
+/* ---------- answers ---------- */
+#answers {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  justify-content: center;
+}
+
+.answer {
+  font-size: 28px;
+  min-width: 110px;
+  padding: 14px 0;
+  flex: 0 1 160px;
+}
+
+#hint {
+  font-size: 11px;
+  opacity: 0.6;
+  user-select: none;
+}
+
+/* ---------- leaderboard ---------- */
+ol {
+  list-style: none;
+  min-width: 260px;
+}
+
+ol li {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  font-size: 16px;
+  padding: 2px 0;
+}
+
+ol li .rank { opacity: 0.5; }
+
+/* ---------- settings ---------- */
+#note-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px 14px;
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+}
+
+#note-grid label, #clef-row label {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+input[type="checkbox"], input[type="radio"] {
+  accent-color: var(--ink);
+  transform: scale(1.2);
+  margin-right: 4px;
+}
+
+/* ---------- high score entry ---------- */
+#initials {
+  font: inherit;
+  font-size: 26px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 8px;
+  width: 130px;
+  border: 3px solid var(--ink);
+  padding: 6px;
+  margin-right: 8px;
+}
+
+#initials:focus { outline: none; background: #eee; }
+
+.blink { animation: blink 0.9s steps(2, start) infinite; }
+
+@keyframes blink { to { visibility: hidden; } }

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sight Scroller</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <h1 id="title">SIGHT&nbsp;SCROLLER</h1>
+
+  <div id="stage">
+    <canvas id="game" width="960" height="360"></canvas>
+
+    <!-- Main menu -->
+    <div class="overlay" id="menu">
+      <div class="panel">
+        <p class="tagline">run · read · survive</p>
+        <button class="big" id="btn-gym">GYM</button>
+        <button class="big" id="btn-virtuoso">VIRTUOSO</button>
+        <div class="row">
+          <button id="btn-leaderboard">LEADERBOARD</button>
+          <button id="btn-settings">SETTINGS</button>
+        </div>
+        <p class="help">Name the note before you reach it.<br>
+        Gym: 3 lives, grab hearts. Virtuoso: 1 life, ever faster.</p>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="overlay hidden" id="settings">
+      <div class="panel wide">
+        <h2>SETTINGS</h2>
+        <div class="row" id="clef-row">
+          <label><input type="radio" name="clef" value="treble"> Treble clef</label>
+          <label><input type="radio" name="clef" value="bass"> Bass clef</label>
+          <label><input type="checkbox" id="opt-sound"> Sound</label>
+        </div>
+        <p class="help">Pick the notes players will be quizzed on (at least 2):</p>
+        <div id="note-grid"></div>
+        <p class="warn hidden" id="settings-warn">Select at least 2 notes.</p>
+        <div class="row">
+          <button id="btn-settings-defaults">DEFAULTS</button>
+          <button id="btn-settings-save">SAVE</button>
+          <button id="btn-settings-back">BACK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="overlay hidden" id="leaderboard">
+      <div class="panel">
+        <h2>LEADERBOARD</h2>
+        <div class="row">
+          <button class="tab active" id="tab-gym">GYM</button>
+          <button class="tab" id="tab-virtuoso">VIRTUOSO</button>
+        </div>
+        <ol id="score-list"></ol>
+        <button id="btn-leaderboard-back">BACK</button>
+      </div>
+    </div>
+
+    <!-- Game over -->
+    <div class="overlay hidden" id="gameover">
+      <div class="panel">
+        <h2>GAME OVER</h2>
+        <p id="final-score"></p>
+        <div id="hs-entry" class="hidden">
+          <p class="blink">NEW HIGH SCORE!</p>
+          <input id="initials" maxlength="3" placeholder="AAA" autocomplete="off">
+          <button id="btn-save-score">SAVE</button>
+        </div>
+        <ol id="go-score-list"></ol>
+        <div class="row">
+          <button id="btn-retry">PLAY AGAIN</button>
+          <button id="btn-go-menu">MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pause -->
+    <div class="overlay hidden" id="paused">
+      <div class="panel">
+        <h2 class="blink">PAUSED</h2>
+        <p class="help">press P to resume</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="answers">
+    <button class="answer" data-i="0"></button>
+    <button class="answer" data-i="1"></button>
+    <button class="answer" data-i="2"></button>
+  </div>
+
+  <p id="hint">keys: 1 2 3 answer · P pause · M mute</p>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
