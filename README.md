@@ -50,6 +50,14 @@ Every 5–10 notes, something happens in the world:
 - **Tumbleweed** — bounces along the track and hops right over the runner.
 - **Rain** — a passing shower rolls through, then clears.
 
+## Backgrounds
+
+Every ~20 notes the scenery changes: a "32-bit" background (forest, city
+skyline, space, underwater, or mountains) crossfades in, drawn in muted gray
+so it sits firmly behind the music, with a slow parallax scroll for depth.
+Runs start on plain paper, and quitting to the menu fades the scenery away
+again.
+
 ## Settings
 
 The settings screen lets an admin choose:

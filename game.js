@@ -360,6 +360,11 @@ const G = {
   fxCountdown: 0,  // notes until the next effect
   lastFx: null,
   celebrated: false, // confetti fired for this run
+  bg: null,        // current "32-bit" background scene
+  bgPrev: null,    // scene fading out during a crossfade
+  bgFade: 1,       // 0..1 crossfade progress
+  bgCountdown: 0,  // notes until the background changes
+  scrollX: 0,      // total world distance scrolled (drives parallax)
 };
 
 function staffY(name) {
@@ -417,6 +422,9 @@ function startGame(mode) {
   G.fxCountdown = 5 + Math.floor(Math.random() * 6);
   G.lastFx = null;
   G.celebrated = false;
+  G.scrollX = 0;
+  G.bgCountdown = 18 + Math.floor(Math.random() * 5);
+  switchBackground(null); // every run starts on plain paper
   ensureSpawns();
   showOverlay(null);
   updateButtons();
@@ -494,6 +502,10 @@ function checkSpeedUp() {
 const FX_TYPES = ['daynight', 'ufo', 'tumbleweed', 'rain', 'shark'];
 
 function noteResolved() {
+  if (--G.bgCountdown <= 0) {
+    switchBackground(choice(BG_TYPES.filter(n => n !== (G.bg && G.bg.name))));
+    G.bgCountdown = 18 + Math.floor(Math.random() * 5); // every ~20 notes
+  }
   if (--G.fxCountdown > 0) return;
   if (G.fx.length) { G.fxCountdown = 1; return; } // let the current effect finish first
   startEffect();
@@ -592,6 +604,178 @@ function drawFxFront() {
   }
 }
 
+/* ================= "32-bit" backgrounds ================= */
+
+const BG_TYPES = ['forest', 'city', 'space', 'underwater', 'mountains'];
+const BG_BASE = 344; // ground line the scenery stands on
+
+// muted grays that sit firmly behind the ink, in both themes
+const bgTone = () => grayHex(Math.round(208 - 148 * themeU));
+function bgToneFar() {
+  const tone = 208 - 148 * themeU, pap = 255 - 238 * themeU;
+  return grayHex(Math.round(tone + (pap - tone) * 0.45));
+}
+
+function switchBackground(name) {
+  if (!name && !G.bg && !G.bgPrev) return;
+  G.bgPrev = G.bg; // current scene fades out
+  G.bg = name ? makeBackground(name) : null;
+  G.bgFade = 0;
+}
+
+function makeBackground(name) {
+  const bg = { name, tileW: 480, parallax: 0.2 };
+  if (name === 'forest') {
+    bg.parallax = 0.25;
+    bg.trees = [];
+    for (let x = 16; x < bg.tileW - 16; x += 30 + rand(0, 26)) {
+      bg.trees.push({ x, h: 70 + rand(0, 85), w: 26 + rand(0, 16) });
+    }
+  } else if (name === 'city') {
+    bg.tileW = 520;
+    bg.parallax = 0.15;
+    bg.buildings = [];
+    let x = 4;
+    while (x + 76 < bg.tileW) {
+      const w = 36 + rand(0, 38), h = 80 + rand(0, 160);
+      const windows = [];
+      for (let wy = 10; wy < h - 12; wy += 16) {
+        for (let wx = 6; wx < w - 8; wx += 12) {
+          if (Math.random() < 0.55) windows.push({ x: wx, y: wy });
+        }
+      }
+      bg.buildings.push({ x, w, h, windows, antenna: Math.random() < 0.3 });
+      x += w + 8 + rand(0, 14);
+    }
+  } else if (name === 'space') {
+    bg.tileW = 960;
+    bg.parallax = 0.05;
+    bg.stars = [];
+    for (let i = 0; i < 110; i++) {
+      bg.stars.push({ x: rand(0, bg.tileW), y: 15 + rand(0, 320), s: Math.ceil(rand(1, 3)), plus: Math.random() < 0.12 });
+    }
+    bg.planet = { x: 60 + rand(0, bg.tileW - 120), y: 50 + rand(0, 70), r: 16 + rand(0, 14) };
+  } else if (name === 'underwater') {
+    bg.weeds = [];
+    for (let x = 24; x < bg.tileW - 16; x += 60 + rand(0, 44)) {
+      bg.weeds.push({ x, n: 6 + Math.floor(rand(0, 6)), amp: 5 + rand(0, 7), phase: rand(0, 6.28) });
+    }
+    bg.fish = [];
+    for (let i = 0; i < 5; i++) {
+      bg.fish.push({ x: rand(20, bg.tileW - 20), y: 60 + rand(0, 200), s: 7 + rand(0, 7), dir: Math.random() < 0.5 ? 1 : -1 });
+    }
+    bg.bubbles = [];
+    for (let i = 0; i < 4; i++) bg.bubbles.push({ x: rand(0, bg.tileW), phase: rand(0, 300), r: 2 + rand(0, 3) });
+  } else { // mountains
+    bg.tileW = 560;
+    bg.parallax = 0.1;
+    bg.far = [];
+    for (let x = 60; x < bg.tileW + 60; x += 170 + rand(0, 80)) bg.far.push({ x, h: 130 + rand(0, 80) });
+    bg.near = [];
+    for (let x = 100; x < bg.tileW + 40; x += 240 + rand(0, 100)) bg.near.push({ x, h: 80 + rand(0, 70) });
+  }
+  return bg;
+}
+
+function bgTri(cx, top, w, h) {
+  ctx.beginPath();
+  ctx.moveTo(cx, top);
+  ctx.lineTo(cx - w / 2, top + h);
+  ctx.lineTo(cx + w / 2, top + h);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawBackground(bg, alpha) {
+  if (!bg || alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const off = (G.scrollX * bg.parallax) % bg.tileW;
+  for (let ox = Math.round(-off); ox < CVS_W; ox += bg.tileW) drawBgTile(bg, ox);
+  ctx.restore();
+}
+
+function drawBgTile(bg, ox) {
+  if (bg.name === 'forest') {
+    ctx.fillStyle = bgTone();
+    for (const tr of bg.trees) {
+      const x = ox + tr.x;
+      ctx.fillRect(x - 2, BG_BASE - 10, 4, 10);
+      bgTri(x, BG_BASE - tr.h, tr.w * 0.55, tr.h * 0.38);
+      bgTri(x, BG_BASE - tr.h * 0.78, tr.w * 0.8, tr.h * 0.4);
+      bgTri(x, BG_BASE - tr.h * 0.55, tr.w, tr.h * 0.45);
+    }
+  } else if (bg.name === 'city') {
+    for (const b of bg.buildings) {
+      const x = ox + b.x;
+      ctx.fillStyle = bgTone();
+      ctx.fillRect(x, BG_BASE - b.h, b.w, b.h);
+      if (b.antenna) ctx.fillRect(x + b.w / 2 - 1, BG_BASE - b.h - 16, 2, 16);
+      ctx.fillStyle = paper();
+      for (const w of b.windows) ctx.fillRect(x + w.x, BG_BASE - b.h + w.y, 4, 6);
+    }
+  } else if (bg.name === 'space') {
+    ctx.fillStyle = bgTone();
+    for (const s of bg.stars) {
+      const x = ox + s.x;
+      if (s.plus) {
+        ctx.fillRect(x - 3, s.y - 1, 7, 2);
+        ctx.fillRect(x - 1, s.y - 3, 2, 7);
+      } else {
+        ctx.fillRect(x, s.y, s.s, s.s);
+      }
+    }
+    const p = bg.planet;
+    ctx.beginPath();
+    ctx.arc(ox + p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = bgTone();
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(ox + p.x, p.y, p.r * 1.8, p.r * 0.5, -0.3, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (bg.name === 'underwater') {
+    ctx.fillStyle = bgTone();
+    for (const w of bg.weeds) {
+      for (let i = 0; i < w.n; i++) {
+        const sx = ox + w.x + Math.sin(G.time * 1.2 + w.phase + i * 0.6) * w.amp * (i / w.n);
+        ctx.fillRect(sx - 3, BG_BASE - (i + 1) * 12, 6, 12);
+      }
+    }
+    for (const f of bg.fish) {
+      const x = ox + f.x;
+      ctx.beginPath();
+      ctx.ellipse(x, f.y, f.s, f.s * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x + f.s * f.dir, f.y);
+      ctx.lineTo(x + f.s * 1.7 * f.dir, f.y - f.s * 0.6);
+      ctx.lineTo(x + f.s * 1.7 * f.dir, f.y + f.s * 0.6);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.strokeStyle = bgTone();
+    ctx.lineWidth = 2;
+    for (const b of bg.bubbles) {
+      for (let k = 0; k < 3; k++) {
+        const by = BG_BASE - 4 - ((G.time * 22 + k * 100 + b.phase) % 310);
+        ctx.beginPath();
+        ctx.arc(ox + b.x + Math.sin(by * 0.05) * 4, by, b.r + k, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+  } else { // mountains
+    ctx.fillStyle = bgToneFar();
+    for (const m of bg.far) bgTri(ox + m.x, BG_BASE - m.h, 260, m.h);
+    for (const m of bg.near) {
+      ctx.fillStyle = bgTone();
+      bgTri(ox + m.x, BG_BASE - m.h, 300, m.h);
+      ctx.fillStyle = paper();
+      bgTri(ox + m.x, BG_BASE - m.h, 300 * (26 / m.h), 26);
+    }
+  }
+}
+
 /* ================= update ================= */
 
 function update(dt) {
@@ -604,6 +788,7 @@ function update(dt) {
 
   G.time += dt;
   const dx = G.speed * dt;
+  G.scrollX += dx;
   for (const n of G.notes) n.x -= dx;
   for (const h of G.hearts) h.x -= dx;
   G.notes = G.notes.filter(n => n.x > -100);
@@ -732,6 +917,8 @@ function render() {
   ctx.clearRect(0, 0, CVS_W, CVS_H);
   ctx.fillStyle = paper();
   ctx.fillRect(0, 0, CVS_W, CVS_H);
+  if (G.bgPrev) drawBackground(G.bgPrev, 1 - G.bgFade);
+  drawBackground(G.bg, G.bgFade);
   ctx.fillStyle = ink();
   ctx.strokeStyle = ink();
 
@@ -1085,7 +1272,8 @@ function quitToMenu() {
   G.fx = [];
   G.jump = null;
   G.activeNote = null;
-  setTheme('light'); // back at the menu, night fades to day
+  setTheme('light');      // back at the menu, night fades to day...
+  switchBackground(null); // ...and the scenery fades back to plain paper
   updateButtons();
   showOverlay('menu');
 }
@@ -1128,6 +1316,10 @@ function frame(t) {
   const target = G.theme === 'dark' ? 1 : 0;
   const step = dt / THEME_FADE_S;
   themeU = Math.abs(target - themeU) <= step ? target : themeU + Math.sign(target - themeU) * step;
+  if (G.bgFade < 1) {
+    G.bgFade = Math.min(1, G.bgFade + dt / 1.2);
+    if (G.bgFade >= 1) G.bgPrev = null;
+  }
   update(dt);
   render();
   updateConfetti(dt);
